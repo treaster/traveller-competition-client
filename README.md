@@ -16,17 +16,18 @@ Travelling Drone Competition makes no judgments about which metrics are good or 
 
 To play, an entrant must write a program that can connect to the server via websocket. The program and engine communicate over the websocket using a simple RPC-like protocol.
 
-1. The program must send a handshake message in a particular format to the server to initialize the connection. A malformed handshake will result in the websocket being closed immediately.
+1. Connecting the websocket requires an authorization token. Contact the game manager (that's a human) to obtain a token.
+1. The program must send the handshake message, including the previously mentioned token, in a particular format to initialize the connection. A malformed handshake will result in the websocket being closed immediately.
 1. Every N minutes, the competition engine starts the next scenario. All open websockets will be included in the round. Any websocket connections that are opened after a round begins must wait for the following round.
 1. The engine will send an initial specification of the scenario parameters. This includes things like hospital location, number and configuration of drones, etc.
-1. The engine will send move request. This request contains the simulation state at that time, including pending orders and available drones. The scheduler program's response must contain the list of which drones to launch, with which orders loaded onto each.
-1. The final message of the scenario run is a variation on the move request, which instead contains the metrics gathered for that scenario run. Once this message is sent, the scheduler program should prepare itself for a new scenario, per step 2.
+1. The engine will send move request. This request contains the simulation state at that time, including currently pending orders and available drones. The scheduler program's response must contain the list of which drones to launch, with which orders loaded onto each.
+1. When the scenario run is completed, the server will send an end message which instead contains the metrics gathered for that run. Once this message is sent, the scheduler program should prepare itself for a new scenario, per step 2.
 
 # Technical Details
 
 1. Open a websocket to `wss://treaster.net/tsc/ws-competition`
 1. Send a message on the websocket with the following JSON-formatted message:
- 
+
     ```
     {
         // The top-level key name indicates the message type and payload structure.
@@ -34,10 +35,11 @@ To play, an entrant must write a program that can connect to the server via webs
         "Handshake": {
             // An authorization token that allows access to play the game. The token
             // will be used to verify your participation in the competition, and to
-            // look up your user initials for public display. Contact the game
-            // manager (that's a human) to obtain a token.
-            "AuthToken": string       
-            
+            // look up your user initials for public display.
+            //
+            // Contact the game manager (that's a human) to obtain a token.
+            "AuthToken": string
+
             // The name of your entry. This will be displayed in competition
             // leaderboards, alongside your user initials. The name could be descriptive
             // of your strategy with this entry, or could be something otherwise fun or
@@ -45,7 +47,7 @@ To play, an entrant must write a program that can connect to the server via webs
             // Incremental changes might result in small name changes -
             // "Greedy v1" -> "Greedy V2", while bigger implementation changes might
             // justify bigger name changes.
-            "EntryName": string  
+            "EntryName": string
         }
     }
     ```
@@ -56,11 +58,11 @@ To play, an entrant must write a program that can connect to the server via webs
     {
         "HandshakeResult": {
             // whether the handshake was successful
-            "IsOk": bool          
-            
+            "IsOk": bool
+
             // a human-readable string with more information
-            "Message": string     
-    
+            "Message": string
+
             // A time limit in milliseconds of how long the client has to submit
             // moves back to the server. Note that this is from the server's
             // perspective, so message transport times are included. If a move
@@ -68,10 +70,10 @@ To play, an entrant must write a program that can connect to the server via webs
             // websocket. Yes, this is unfair to users with slower or less reliable
             // internet connections, but thems the rules!
             TimeoutMs int
-    
+
             // Number of seconds between the start of each scenario run.
             ScenarioFreqSecs int
-    
+
             // Start time of the next scenario run, in RFC3339 format.
             NextStartDatetime string
         }
@@ -80,6 +82,7 @@ To play, an entrant must write a program that can connect to the server via webs
 
 1. Read from the websocket to receive a JSON-formatted description of the scenario:
 
+    ```
     {
         "StartScenarioRun": {
             "Scenario": {
@@ -88,7 +91,7 @@ To play, an entrant must write a program that can connect to the server via webs
                     "X": float64
                     "Y": float64
                 },
-     
+
                 // A mapping of hospital name -> hospital coordinate
                 "Hospitals": {
                     "[hospital name]": {
@@ -97,7 +100,7 @@ To play, an entrant must write a program that can connect to the server via webs
                     },
                     ...
                 }
-    
+
                 // A list of drone descriptions.
                 // Note that different drones may have different capabilities.
                 "Drones": [
@@ -109,9 +112,9 @@ To play, an entrant must write a program that can connect to the server via webs
                      },
                      ...
                 ],
-                
+
                 // the end time of the scenario
-                "MaxTime": int,      
+                "MaxTime": int,
             }
         }
     }
@@ -129,7 +132,7 @@ To play, an entrant must write a program that can connect to the server via webs
             "State": {
                 // the tick number of the simulation. When this reaches MaxTime,
                 // the scenario ends.
-                "TimeOfDay": int     
+                "TimeOfDay": int
                 "PendingOrders": [
                     {
                         "OrderId": int
@@ -139,19 +142,19 @@ To play, an entrant must write a program that can connect to the server via webs
                     },
                     ...
                 ]
-                
+
                 // List of DroneIds that are available for immediate launch.
-                "AvailableDrones": []int     
-    
+                "AvailableDrones": []int
+
                 // The current status of drones that are in flight.
                 "BusyDrones": [
                     {
                         "DroneId": int
-    
+
                         // How many simulation ticks until the drone is returned to
                         // the warehouse and is available for another launch.
                         "TimeToAvailability": int
-    
+
                         "Position": {
                             "X": float64
                             "Y": float64
@@ -163,7 +166,7 @@ To play, an entrant must write a program that can connect to the server via webs
         }
     }
     ```
-    
+
         If the simulation has completed, the server will send EndScenarioRun. This indicates that no more calls to GetMoves will be made until the next scenario begins. Additionally, it includes statistics on how this entry performed during the scenario. Although no more GetMoves messages will be sent, Close may still be sent after EndScenarioRun.
     ```
     {
@@ -189,13 +192,13 @@ To play, an entrant must write a program that can connect to the server via webs
             "IsOk: bool,
 
             // A human-readable string indicating the reason for the close.
-            "Message": string                
+            "Message": string
         }
     }
     ```
 
 
-    1. If "State" was received, write to the websocket a JSON-formatted message describing which drones should launch, carrying which orders. This message must be *received* by the server within [TimeoutMs] of when the request was sent, otherwise the server will terminate the websocket. 
+    1. If "State" was received, write to the websocket a JSON-formatted message describing which drones should launch, carrying which orders. This message must be *received* by the server within [TimeoutMs] of when the request was sent, otherwise the server will terminate the websocket.
 
         ```
         {

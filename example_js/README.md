@@ -1,6 +1,14 @@
 # Example Traveller Entry - Javascript
 
-This is an example Traveller Competition scheduler, implemented in Python. Per the technical details, it:
+## Disclaimer
+
+This example code probably doesn't work as-is. The server-client protocol has changed a couple of times since this was last updated. If you're interested in a JS solution, you have some options:
+1. Contact the game manager (that's a human) and ask for help.
+1. Study the Go (recommended) or Python protocols, and update the JS example code to match. It's somewhat close, just not all the way there.
+
+## Actual Documentation
+
+This is an example Traveller Competition scheduler, implemented in Javascript. Per the technical details, it:
 1. Opens a websocket
 1. Sends the handshake message
 1. Listens for the handshake response
