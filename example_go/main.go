@@ -25,7 +25,7 @@ func DecideLaunches(_ Scenario, state State) []Launch {
 		droneId := availableDroneIds[nextDroneIndex]
 		nextDroneIndex++
 
-		launches = append(launches, Launch{droneId, []int{o.OrderId}})
+		launches = append(launches, Launch{droneId, []string{o.OrderId}})
 	}
 
 	return launches
@@ -92,7 +92,7 @@ SCENARIOS_LOOP:
 		message = MessageToClient{}
 		err = conn.ReadJSON(&message)
 		if err != nil {
-			fmt.Printf("Error reading StartScenarioRun: %s", err.Error())
+			fmt.Printf("Error reading StartScenarioRun: %s\n", err.Error())
 			break SCENARIOS_LOOP
 		}
 

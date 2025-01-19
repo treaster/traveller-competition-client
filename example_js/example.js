@@ -19,7 +19,7 @@ function decideLaunches(scenarioSpec, state) {
         launches.push(
             {
                 DroneId: droneId,
-                OrderIds: [parseInt(orderId)],
+                OrderIds: [orderId],
             },
         )
     }

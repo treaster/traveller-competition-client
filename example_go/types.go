@@ -76,9 +76,9 @@ type Handshake struct {
 // ** COMMON MESSAGE TYPES **
 type State struct {
 	TimeOfDay         int
-	PendingOrders     map[int]Order
-	AvailableDroneIds []int
-	BusyDrones        map[int]DroneStatus
+	PendingOrders     map[string]Order
+	AvailableDroneIds []string
+	BusyDrones        map[string]DroneStatus
 }
 
 type KeySpec struct {
@@ -91,14 +91,14 @@ type KeySpec struct {
 }
 
 type DroneConfig struct {
-	DroneId     int
+	DroneId     string
 	MaxCapacity int
 	MaxSpeed    float64
 	MaxRange    float64
 }
 
 type DroneStatus struct {
-	DroneId            int
+	DroneId            string
 	TimeToAvailability int
 }
 
@@ -110,7 +110,7 @@ type Coord struct {
 type Scenario struct {
 	WarehousePosition Coord
 	Hospitals         map[string]Coord
-	Drones            map[int]DroneConfig
+	Drones            map[string]DroneConfig
 	MaxTime           int
 	SlaSecs           map[Priority]int
 }
@@ -123,15 +123,15 @@ const (
 )
 
 type Order struct {
-	OrderId  int
+	OrderId  string
 	Time     int
 	Hospital string
 	Priority Priority
 }
 
 type Launch struct {
-	DroneId  int
-	OrderIds []int
+	DroneId  string
+	OrderIds []string
 }
 
 type Stats struct {
