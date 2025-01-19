@@ -1,25 +1,25 @@
 "use strict";
 
 
-function decideLaunches(state) {
+function decideLaunches(scenarioSpec, state) {
     const pendingOrders = state.PendingOrders
-    const availableDrones = state.AvailableDrones
+    const availableDroneIds = state.AvailableDroneIds;
 
     const launches = []
 
     let nextDroneIndex = 0
-    for (let o of pendingOrders) {
-        if (nextDroneIndex >= availableDrones.length) {
+    for (const orderId in pendingOrders) {
+        if (nextDroneIndex >= availableDroneIds.length) {
             break
         }
 
-        const droneId = availableDrones[nextDroneIndex]
+        const droneId = availableDroneIds[nextDroneIndex]
         nextDroneIndex += 1
 
         launches.push(
             {
                 DroneId: droneId,
-                OrderIds: [o.OrderId],
+                OrderIds: [parseInt(orderId)],
             },
         )
     }
@@ -57,22 +57,22 @@ export function run(serverUrlBase, wsEndpoint) {
 
     const socket = new WebSocket(serverUrl);
     socket.addEventListener("open", (evt) => {
-        console.log("SEND");
         send(socket, {
-            AuthToken: "[auth token]",
-            EntryName: "I didn't read the instructions",
+            Handshake: {
+                AuthToken: "[auth token]",
+                EntryName: "I didn't read the instructions",
+            },
         });
     });
 
-    let handshakeResult = null;
-    let initScenario = null;
+    let scenarioSpec = null;
 
     socket.addEventListener("message", (evt) => {
-        console.log("MESSAGE", typeof(evt.data), evt.data);
+        console.log("RECV MESSAGE", evt.data);
         const messageObj = JSON.parse(evt.data);
 
-        if (!handshakeResult) {
-            handshakeResult = messageObj;
+        if (messageObj.HandshakeResult) {
+            const handshakeResult = messageObj.HandshakeResult;
             console.log("Got handshake", handshakeResult);
             if (!handshakeResult.IsOk) {
                 socket.close();
@@ -80,40 +80,47 @@ export function run(serverUrlBase, wsEndpoint) {
             return;
         }
 
-        if (!initScenario) {
-            initScenario = messageObj;
+        if (messageObj.StartScenarioRun) {
+            const initScenario = messageObj.StartScenarioRun;
+            scenarioSpec = initScenario.Scenario;
             console.log("Got scenario", initScenario);
             return;
         }
 
-        console.log("Got state");
-        const getMovesReq = messageObj;
-        if (getMovesReq.Error) {
-            console.log(getMovesReq.Error.Message);
-            socket.close();
+        if (messageObj.GetMoves) {
+            const getMovesReq = messageObj.GetMoves;
+            console.log(
+                `Time ${getMovesReq.State.TimeOfDay}: Pending orders ${Object.keys(getMovesReq.State.PendingOrders).length}, available drones ${getMovesReq.State.AvailableDroneIds.length}.`,
+            )
+
+            const launches = decideLaunches(scenarioSpec, getMovesReq.State);
+    
+            send(socket, {
+                Moves: {
+                    Launches: launches,
+                },
+            });
+
             return;
         }
 
-        if (getMovesReq.Stats) {
-            console.log(JSON.stringify(getMovesReq.Stats, "", 4));
-            socket.close();
+        if (messageObj.EndScenarioRun) {
+            const endScenario = messageObj.EndScenarioRun;
+            console.log(JSON.stringify(endScenario.Stats.Values, "", 4));
             return;
         }
 
-        console.log(
-            `Time ${getMovesReq.State.TimeOfDay}: Pending orders ${getMovesReq.State.PendingOrders.length}, available drones ${getMovesReq.State.AvailableDrones.length}.`,
-        )
-
-        const launches = decideLaunches(getMovesReq.State);
-
-        send(socket, {
-            Launches: launches,
-        });
+        if (messageObj.Close) {
+            const closeMsg = messageObj.Close;
+            console.log(`Websocket closing. ${closeMsg.Message}`);
+            return;
+        }
     });
 }
 
 function send(ws, message) {
     const messageJson = JSON.stringify(message);
+    console.log("SEND MESSAGE", messageJson);
     ws.send(messageJson);
 }
 
