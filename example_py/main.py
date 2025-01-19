@@ -3,6 +3,7 @@
 from typing import (
     get_args,
     get_origin,
+    Optional,
     Type,
     Union,
 )
@@ -15,28 +16,22 @@ import json
 
 
 class Struct:
-    def __init__(self, **entries):
-        results = {}
-        for k, v in entries.items():
-            results[k] = deserialize(v)
-        self.__dict__.update(results)
-
-    def __getattr__(self, name: str) -> any:
-        return self.__dict__.get(name, None)
+    # See below
+    ...
 
 
 def decide_launches(scenario: Struct, state: Struct) -> list[Struct]:
     pendingOrders = state.PendingOrders
-    availableDrones = state.AvailableDrones
+    availableDroneIds = state.AvailableDroneIds
 
     launches: list[Struct] = []
 
     nextDroneIndex = 0
     for o in pendingOrders:
-        if nextDroneIndex >= len(availableDrones):
+        if nextDroneIndex >= len(availableDroneIds):
             break
 
-        droneId = availableDrones[nextDroneIndex]
+        droneId = availableDroneIds[nextDroneIndex]
         nextDroneIndex += 1
 
         launches.append(
@@ -100,14 +95,20 @@ def main() -> None:
 
         print("Handshake success!")
 
-        scenario = recv(websocket, "StartScenarioRun")
+        scenario: Optional[StartScenarioRun] = None
         while True:
+            print("RECV")
             message = recv(websocket, None)
 
+            if message.StartScenarioRun:
+                scenario = message.StartScenarioRun
+
             if message.GetMoves:
+                assert scenario
+
                 submessage = message.GetMoves
                 print(
-                    f"Time {submessage.State.TimeOfDay}: Pending orders {len(submessage.State.PendingOrders)}, available drones {len(submessage.State.AvailableDrones)}.",
+                    f"Time {submessage.State.TimeOfDay}: Pending orders {len(submessage.State.PendingOrders)}, available drones {len(submessage.State.AvailableDroneIds)}.",
                 )
 
                 launches = decide_launches(scenario.Scenario, submessage.State)
@@ -120,16 +121,18 @@ def main() -> None:
                     ),
                 )
 
-            if message.Error:
-                print(message.Error.Message)
-                return
-
             if message.EndScenarioRun:
                 print("Done!")
                 stats = serialize(message.EndScenarioRun.Stats)
                 print(json.dumps(stats, indent=4))
                 if not args.comp_mode:
                     return
+
+            if message.Close:
+                submessage = message.Close
+                print(submessage.Message)
+                return
+
 
 
 def send(ws: ClientConnection, obj: Struct) -> str:
@@ -148,6 +151,19 @@ def recv(ws: ClientConnection, expected_submessage: str | None) -> any:
     return obj
 
 
+class Struct:
+    def __init__(self, **entries):
+        results = {}
+        for k, v in entries.items():
+            print("ASSIGN 1", k, type(k))
+            results[k] = deserialize(v)
+        self.__dict__.update(results)
+
+    def __getattr__(self, name: str) -> any:
+        return self.__dict__.get(name, None)
+
+
+
 def deserialize(data: any) -> any:
     if isinstance(data, list):
         results = []
@@ -156,7 +172,20 @@ def deserialize(data: any) -> any:
         return results
 
     if isinstance(data, dict):
-        return Struct(**data)
+        if len(data) != 0:
+            first_key = list(data.keys())[0]
+            print("ASSIGN 2 maybe", first_key, type(first_key))
+            if type(first_key) == str:
+                return Struct(**data)
+
+    # If it didn't look like a struct based on keys type, try again and
+    # deserialize the dict into a new raw dict, but with deserialized values.
+    if isinstance(data, dict):
+        results = {}
+        for key, value in data:
+            print("ASSIGN 3", k)
+            results[key] = deserialize(value)
+        return results
 
     return data
 
