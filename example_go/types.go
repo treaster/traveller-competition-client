@@ -75,10 +75,10 @@ type Handshake struct {
 
 // ** COMMON MESSAGE TYPES **
 type State struct {
-	TimeOfDay       int
-	PendingOrders   []Order
-	AvailableDrones []int
-	BusyDrones      []DroneStatus
+	TimeOfDay         int
+	PendingOrders     map[int]Order
+	AvailableDroneIds []int
+	BusyDrones        map[int]DroneStatus
 }
 
 type KeySpec struct {
@@ -110,7 +110,7 @@ type Coord struct {
 type Scenario struct {
 	WarehousePosition Coord
 	Hospitals         map[string]Coord
-	Drones            []DroneConfig
+	Drones            map[int]DroneConfig
 	MaxTime           int
 	SlaSecs           map[Priority]int
 }

@@ -12,17 +12,17 @@ import (
 // websocket message protocol.
 func DecideLaunches(_ Scenario, state State) []Launch {
 	pendingOrders := state.PendingOrders
-	availableDrones := state.AvailableDrones
+	availableDroneIds := state.AvailableDroneIds
 
 	launches := []Launch{}
 
 	nextDroneIndex := 0
 	for _, o := range pendingOrders {
-		if nextDroneIndex >= len(availableDrones) {
+		if nextDroneIndex >= len(availableDroneIds) {
 			break
 		}
 
-		droneId := availableDrones[nextDroneIndex]
+		droneId := availableDroneIds[nextDroneIndex]
 		nextDroneIndex++
 
 		launches = append(launches, Launch{droneId, []int{o.OrderId}})
@@ -122,7 +122,7 @@ SCENARIOS_LOOP:
 					"Time %d: Pending orders %d, available drones %d.\n",
 					state.TimeOfDay,
 					len(state.PendingOrders),
-					len(state.AvailableDrones),
+					len(state.AvailableDroneIds),
 				)
 
 				launches := DecideLaunches(scenario, state)
