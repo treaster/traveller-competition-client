@@ -27,7 +27,7 @@ def decide_launches(scenario: Struct, state: Struct) -> list[Struct]:
     launches: list[Struct] = []
 
     nextDroneIndex = 0
-    for o in pendingOrders:
+    for orderId, _ in pendingOrders.items():
         if nextDroneIndex >= len(availableDroneIds):
             break
 
@@ -37,7 +37,7 @@ def decide_launches(scenario: Struct, state: Struct) -> list[Struct]:
         launches.append(
             Struct(
                 DroneId=droneId,
-                OrderIds=[o.OrderId],
+                OrderIds=[orderId],
             )
         )
 
@@ -97,7 +97,6 @@ def main() -> None:
 
         scenario: Optional[StartScenarioRun] = None
         while True:
-            print("RECV")
             message = recv(websocket, None)
 
             if message.StartScenarioRun:
@@ -123,7 +122,7 @@ def main() -> None:
 
             if message.EndScenarioRun:
                 print("Done!")
-                stats = serialize(message.EndScenarioRun.Stats)
+                stats = serialize(message.EndScenarioRun.Stats.Values)
                 print(json.dumps(stats, indent=4))
                 if not args.comp_mode:
                     return
@@ -155,7 +154,6 @@ class Struct:
     def __init__(self, **entries):
         results = {}
         for k, v in entries.items():
-            print("ASSIGN 1", k, type(k))
             results[k] = deserialize(v)
         self.__dict__.update(results)
 
@@ -174,16 +172,14 @@ def deserialize(data: any) -> any:
     if isinstance(data, dict):
         if len(data) != 0:
             first_key = list(data.keys())[0]
-            print("ASSIGN 2 maybe", first_key, type(first_key))
-            if type(first_key) == str:
+            if not first_key.startswith("drone-") and not first_key.startswith("order-"):
                 return Struct(**data)
 
     # If it didn't look like a struct based on keys type, try again and
     # deserialize the dict into a new raw dict, but with deserialized values.
     if isinstance(data, dict):
         results = {}
-        for key, value in data:
-            print("ASSIGN 3", k)
+        for key, value in data.items():
             results[key] = deserialize(value)
         return results
 
