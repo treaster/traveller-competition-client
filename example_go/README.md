@@ -13,11 +13,11 @@ From the repository root directory, execute:
 ```
 # Testing
 go run ./example_go/ \
-    --server_url_base=wss://treaster.net/tsc
+    --server_url_base=wss://treaster.net/tzc
 
 # Competition
 go run ./example_go/ \
-    --server_url_base=wss://treaster.net/tsc \
+    --server_url_base=wss://treaster.net/tzc \
     --auth_token=[your auth token] \
     --entry_name=[publicly visible name of this specific entry] \
     --comp_mode

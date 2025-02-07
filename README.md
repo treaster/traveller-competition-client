@@ -25,7 +25,7 @@ To play, an entrant must write a program that can connect to the server via webs
 
 # Technical Details
 
-1. Open a websocket to `wss://treaster.net/tsc/ws-competition`
+1. Open a websocket to `wss://treaster.net/tzc/ws-competition`
 1. Send a message on the websocket with the following JSON-formatted message:
 
     ```
@@ -220,7 +220,7 @@ To play, an entrant must write a program that can connect to the server via webs
 # How To Test
 
 
-Run the client entry as usual, but change the websocket URL to `wss://treaster.net/tsc/ws-testing. This will cause the engine to immediately kick off a single scenario with a fixed configuration. The scenario will run normally end-to-end, but with only one participating scheduler, and no stats are recorded. If no error is received, and stats are received, then your scheduler works! If an error is received ... you might have more work to do.
+Run the client entry as usual, but change the websocket URL to `wss://treaster.net/tzc/ws-testing. This will cause the engine to immediately kick off a single scenario with a fixed configuration. The scenario will run normally end-to-end, but with only one participating scheduler, and no stats are recorded. If no error is received, and stats are received, then your scheduler works! If an error is received ... you might have more work to do.
 
 
 # Traveller Competition Design Considerations
